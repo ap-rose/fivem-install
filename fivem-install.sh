@@ -121,6 +121,7 @@ chmod -R 0777 /home/fxserver
 
 echo -e "\e[93m[fivem-install]\e[0m Open ufw tcp port 30120 and 40120"
 sudo ufw allow 30120/tcp
+sudo ufw allow 30120/udp
 sudo ufw allow 40120/tcp
 
 
