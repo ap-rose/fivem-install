@@ -1,6 +1,7 @@
 #!/bin/bash
 # Author: A.P. Rose
 # Version: 1.0
+# https://github.com/ap-rose/fivem-install
 
 echo -e "\e[93m[fivem-install]\e[0m Detecting Operating System"
 if [ -f /etc/centos-release ]; then
@@ -115,36 +116,32 @@ fi
 mkdir -p /home/fxserver/server
 mkdir -p /home/fxserver/server-data
 git clone https://github.com/citizenfx/cfx-server-data.git /home/fxserver/server-data
-wget "https://raw.githubusercontent.com/ap-rose/fivem-install/main/config/server.cfg" -O /home/fxserver/server-data/server.cfg
-#wget "https://raw.githubusercontent.com/ap-rose/fivem-install/main/fivem-cron.sh" -O /home/fxserver/server-data/server.cfg
-echo -e "\e[93m[fivem-install]\e[0m Configure FiveM server.cfg"
-read -r -p "Enter your FiveM license: " fxlicense
-read -r -p "Enter your Steam API: " fxsteamapi
-read -r -p "Enter your SteamID (steamID64 - Hex): " fxsteamid
-read -r -p "Enter your FiveM server name: " fxname
-read -r -p "Enter your FiveM server description: " fxdesc
-cat >> /home/fxserver/server-data/server.cfg <<EOF
-sv_licenseKey $fxlicense
-set steam_webApiKey "$fxsteamapi"
-sv_hostname "$fxname"
-sets sv_projectName "$fxname"
-sets sv_projectDesc "$fxdesc"
-add_principal identifier.steam:$fxsteamid group.admin # add the admin to the group
-EOF
 chown fxserver:fxserver -R /home/fxserver
 chmod -R 0777 /home/fxserver
+
+echo -e "\e[93m[fivem-install]\e[0m Open ufw tcp port 30120 and 40120"
+sudo ufw allow 30120/tcp
+sudo ufw allow 40120/tcp
+
+
+screen -S fxserver -dm /home/fxserver/server/run.sh
 
 echo '
  ____  __  _  _  ____  _  _      __  __ _  ____  ____  __   __    __   
 (  __)(  )/ )( \(  __)( \/ ) ___(  )(  ( \/ ___)(_  _)/ _\ (  )  (  )  
  ) _)  )( \ \/ / ) _) / \/ \(___))( /    /\___ \  )( /    \/ (_/\/ (_/\
 (__)  (__) \__/ (____)\_)(_/    (__)\_)__)(____/ (__)\_/\_/\____/\____/
-'
-echo "Server IP: 			$ip:30120"
-echo "Server Name: 			$fxname" 
-echo "Server Description: 		$fxdesc" 
-echo "FiveM License: 			$fxlicense" 
-echo "Steam API: 			$fxsteamapi" 
-echo "Admin SteamID: 			$fxsteamid" 
-echo "SQL Password (root): 		$MYSQL_ROOT_PASSWORD"
-echo "SQL Password (fxserver): 	$sqlpass"
+https://github.com/ap-rose/fivem-install
+
+FiveM server has been installed but not configured.
+
+Visit http://$ip:40120/ to configure your server.
+
+txAdmin Database Configuration
+Host: 		localhost
+User: 		fxserver_user
+Pass: 		$sqlpass
+Database: 	fxserver_data
+
+
+' > /home/fxserver/fivem-install.log
