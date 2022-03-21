@@ -72,7 +72,7 @@ deb-src http://archive.canonical.com/ubuntu $(lsb_release -sc) partner
 EOF
 apt-get update
 # Get Basics
-DEBIAN_FRONTEND=noninteractive apt-get -y install software-properties-common wget gnupg gnupg2
+DEBIAN_FRONTEND=noninteractive apt-get -y install software-properties-common wget gnupg gnupg2 xz-utils git
 wget -O- "https://download.opensuse.org/repositories/home:/andykimpe:/ubuntu-$(lsb_release -sc)/xUbuntu_$(lsb_release -sr)/Release.key" | sudo apt-key add -
 echo 'deb http://download.opensuse.org/repositories/home:/andykimpe:/ubuntu-'$(lsb_release -sc)'/xUbuntu_'$(lsb_release -sr)'/ /' > /etc/apt/sources.list.d/andykimpe.list
 echo 'deb-src http://download.opensuse.org/repositories/home:/andykimpe:/ubuntu-'$(lsb_release -sc)'/xUbuntu_'$(lsb_release -sr)'/ /' >> /etc/apt/sources.list.d/andykimpe.list
@@ -129,4 +129,41 @@ DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade
 getent passwd fxserver
 adduser --system --shell /bin/false --group --disabled-login fxserver 
 mkdir -p /home/fxserver
+wget -O "/tmp/fx.tar.xz" "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/5402-810a639673d8da03fe4b1dc2b922c9c0265a542e/fx.tar.xz"
+tar -zxvf "/tmp/fx.tar.xz" -C "/home/fxserver/"
+rm -f /tmp/fx.tar.xz
+mysql -u root -p$ROOT_PASSWORD -e "DROP DATABASE IF EXISTS fxserver_data; CREATE DATABASE IF NOT EXISTS fxserver_data;"
+sqlpass=$(tr -cd '[:alnum:]' < /dev/urandom | fold -w20 | head -n1)
+mysql -u root -p$ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON fxserver_data.* TO 'fxserver_user'@'%' IDENTIFIED BY '$sqlpass' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+ip=$(wget -qO- https://ipstring.000webhostapp.com/)
+
+mkdir -p ~/home/fxserver/server
+mkdir -p ~/home/fxserver/server-data
+git clone https://github.com/citizenfx/cfx-server-data.git ~/home/fxserver/server-data
+wget "https://raw.githubusercontent.com/ap-rose/fivem-install/main/Configs/my.cnf" -O ~/home/fxserver/server-data/server.cfg
+
+read license steamapi 
+
+read -r -p "Enter your FiveM license: " fxlicense
+
+read -r -p "Enter your Steam API: " fxsteamapi
+
+read -r -p "Enter your SteamID (steamID64 - Hex): " fxsteamid
+
+read -r -p "Enter your FiveM hostname: " fxhostname
+
+read -r -p "Enter your FiveM server name: " fxname
+
+read -r -p "Enter your FiveM server description: " fxdesc
+
+cat > /etc/apt/sources.list <<EOF
+sv_licenseKey $fxlicense
+set steam_webApiKey "$fxsteamapi"
+sv_hostname "FXServer, but unconfigured"
+sets sv_projectName "$fxname"
+sets sv_projectDesc "$fxdesc"
+add_principal identifier.steam:$fxsteamid group.admin # add the admin to the group
+EOF
+
+
 
