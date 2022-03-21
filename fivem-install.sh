@@ -1,6 +1,6 @@
 #!/bin/bash
 # Author: A.P. Rose
-# Version: 1.0
+# Version: 1.1
 # https://github.com/ap-rose/fivem-install
 
 echo -e "\e[93m[fivem-install]\e[0m Detecting Operating System"
@@ -93,7 +93,7 @@ getent passwd fxserver
 adduser --system --shell /bin/false --group --disabled-login fxserver 
 mkdir -p /home/fxserver
 echo -e "\e[93m[fivem-install]\e[0m Download FiveM content"
-wget -O "/home/fxserver/server/fx.tar.xz" "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/5402-810a639673d8da03fe4b1dc2b922c9c0265a542e/fx.tar.xz"
+DEBIAN_FRONTEND=noninteractive wget -O "/home/fxserver/server/fx.tar.xz" "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/5402-810a639673d8da03fe4b1dc2b922c9c0265a542e/fx.tar.xz"
 echo -e "\e[93m[fivem-install]\e[0m Unpack FiveM content"
 DEBIAN_FRONTEND=noninteractive tar xf "/home/fxserver/server/fx.tar.xz" -C "/home/fxserver/server/"
 rm -f /tmp/fx.tar.xz
@@ -127,7 +127,7 @@ sudo ufw allow 40120/tcp
 
 screen -S fxserver -dm /home/fxserver/server/run.sh
 
-echo '
+echo "
  ____  __  _  _  ____  _  _      __  __ _  ____  ____  __   __    __   
 (  __)(  )/ )( \(  __)( \/ ) ___(  )(  ( \/ ___)(_  _)/ _\ (  )  (  )  
  ) _)  )( \ \/ / ) _) / \/ \(___))( /    /\___ \  )( /    \/ (_/\/ (_/\
@@ -143,6 +143,4 @@ Host: 		localhost
 User: 		fxserver_user
 Pass: 		$sqlpass
 Database: 	fxserver_data
-
-
-' > /home/fxserver/fivem-install.log
+" | tee /home/fxserver/fivem-install.log 
