@@ -1,10 +1,8 @@
-#
-# Author: A.P. Rose
-#
-#
 #!/bin/bash
+# Author: A.P. Rose
+# Version: 1.0
 
-# Detect User OS
+echo -e "\e[93m[fivem-install]\e[0m Detecting Operating System"
 if [ -f /etc/centos-release ]; then
     OS="CentOs"
     VERFULL=$(sed 's/^.*release //;s/ (Fin.*$//' /etc/centos-release)
@@ -24,24 +22,42 @@ elif [ -f /etc/os-release ]; then
     VER=$(uname -r)
 fi
 ARCH=$(uname -m)
-
 echo "Detected : $OS  $VER  $ARCH"
-
 if [[ "$OS" = "Ubuntu" && "$VER" = "18.04" || "$OS" = "Ubuntu" && "$VER" = "20.04" ]] ; then
     echo -e "\e[92mOS Supported\e[0m"
 else
-    echo "\e[91mSorry, this OS is not supported by FiveM install script.\e[0m"
+    echo -e "\e[91mSorry, this OS is not supported by FiveM install script.\e[0m"
     exit 1
 fi
-
-# Userinput - Root Password
-read -e -p "Enter your root mysql password: " -i "$ROOT_PASSWORD" ROOT_PASSWORD
-if [[ "$ROOT_PASSWORD" = "" ]]; then
+echo ""
+echo -e "\e[93mFiveM Server Installer"
+echo "https://github.com/ap-rose/fivem-install"
+echo ""
+echo -e "\e[91mWARNING: This script will overwrite and install a FiveM server.\e[0m"
+echo ""
+while true; do
+    read -p "Do you wish to install FiveM server? (Y/N)" yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
+while true; do
+    read -p "Are you sure? (Y/N)" yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
+echo -e "\e[39m"
+read -e -p "Enter your root mysql password: " -i "$MYSQL_ROOT_PASSWORD" MYSQL_ROOT_PASSWORD
+if [[ "$MYSQL_ROOT_PASSWORD" = "" ]]; then
     echo "mysql password required."
     exit 2
 fi
-
-# Purge current MYSQL installations
+echo -e "\e[93m[fivem-install]\e[0m Purging SQL Software"
 DEBIAN_FRONTEND=noninteractive apt-get -y purge mariadb-client-*
 DEBIAN_FRONTEND=noninteractive apt-get -y purge mariadb-client-core-*
 DEBIAN_FRONTEND=noninteractive apt-get -y purge mariadb-common
@@ -59,111 +75,76 @@ DEBIAN_FRONTEND=noninteractive apt-get -y purge mysql-community-server
 rm -rf /var/lib/mysql/
 rm -rf /var/lib/mysql-*
 rm -rf /etc/mysql
-# Add sources
-cat > /etc/apt/sources.list <<EOF
-deb mirror://mirrors.ubuntu.com/mirrors.txt $(lsb_release -sc) main restricted universe multiverse
-deb http://security.ubuntu.com/ubuntu $(lsb_release -sc)-security main restricted universe multiverse
-deb mirror://mirrors.ubuntu.com/mirrors.txt $(lsb_release -sc)-updates main restricted universe multiverse
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $(lsb_release -sc) main restricted universe multiverse 
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $(lsb_release -sc)-updates main restricted universe multiverse
-deb-src http://security.ubuntu.com/ubuntu $(lsb_release -sc)-security main restricted universe multiverse
-deb http://archive.canonical.com/ubuntu $(lsb_release -sc) partner
-deb-src http://archive.canonical.com/ubuntu $(lsb_release -sc) partner
-EOF
 apt-get update
-# Get Basics
-DEBIAN_FRONTEND=noninteractive apt-get -y install software-properties-common wget gnupg gnupg2 xz-utils git
-wget -O- "https://download.opensuse.org/repositories/home:/andykimpe:/ubuntu-$(lsb_release -sc)/xUbuntu_$(lsb_release -sr)/Release.key" | sudo apt-key add -
-echo 'deb http://download.opensuse.org/repositories/home:/andykimpe:/ubuntu-'$(lsb_release -sc)'/xUbuntu_'$(lsb_release -sr)'/ /' > /etc/apt/sources.list.d/andykimpe.list
-echo 'deb-src http://download.opensuse.org/repositories/home:/andykimpe:/ubuntu-'$(lsb_release -sc)'/xUbuntu_'$(lsb_release -sr)'/ /' >> /etc/apt/sources.list.d/andykimpe.list
+DEBIAN_FRONTEND=noninteractive apt-get -y install wget xz-utils git
+apt-get update
+echo -e "\e[93m[fivem-install]\e[0m Install mariadb-server"
+DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server
+mkdir /etc/mysql/conf.d/
+DEBIAN_FRONTEND=noninteractive mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
+echo -e "\e[93m[fivem-install]\e[0m Start mariadb-server"
+timeout 5 systemctl start mariadb
+DEBIAN_FRONTEND=noninteractive apt-get -y install sshpass
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade
-
-# Get SQL
-echo "mariadb-server mysql-server/root_password password $ROOT_PASSWORD" | /usr/bin/debconf-set-selections
-echo "mariadb-server mysql-server/root_password_again password $ROOT_PASSWORD" | /usr/bin/debconf-set-selections
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get -y install mariadb-server libxslt1-dev e2fsprogs wget mcrypt nscd htop python libcurl3 nano unzip
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade
-DEBIAN_FRONTEND=noninteractive apt-get -y install libcurl4
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get -y install libapache2-mod-php5.6 php5.6-common php5.6-cli php5.6-mysql php5.6-gd php5.6-mcrypt php5.6-curl php-pear php5.6-imap php5.6-xmlrpc php5.6-xsl php5.6-intl php php-dev php5.6-dev
-echo "phpmyadmin phpmyadmin/dbconfig-install boolean true" | debconf-set-selections
-echo "phpmyadmin phpmyadmin/app-password-confirm password $ROOT_PASSWORD" | debconf-set-selections
-echo "phpmyadmin phpmyadmin/mysql/admin-pass password $ROOT_PASSWORD" | debconf-set-selections
-echo "phpmyadmin phpmyadmin/mysql/app-pass password $ROOT_PASSWORD" | debconf-set-selections
-echo "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2" | debconf-set-selections
-DEBIAN_FRONTEND=noninteractive apt-get -y install phpmyadmin php5.6-mbstring
-update-alternatives --set php /usr/bin/php5.6
-update-alternatives --set phar /usr/bin/phar5.6
-update-alternatives --set phar.phar /usr/bin/phar.phar5.6
-update-alternatives --set phpize /usr/bin/phpize5.6
-update-alternatives --set php-config /usr/bin/php-config5.6
-a2dismod php7.0
-a2dismod php7.1
-a2dismod php7.2
-a2dismod php7.3
-a2dismod php7.4
-a2enmod php5.6
-phpenmod -v 5.6 mcrypt
-phpenmod -v 5.6 mbstring
-service apache2 restart
-cd /usr/share/
-rm -rf /usr/share/phpmyadmin
-wget https://files.phpmyadmin.net/phpMyAdmin/4.9.5/phpMyAdmin-4.9.5-all-languages.tar.xz
-tar -xvf phpMyAdmin-4.9.5-all-languages.tar.xz
-rm -f phpMyAdmin-4.9.5-all-languages.tar.xz
-mv phpMyAdmin-4.9.5-all-languages phpmyadmin
-chmod 777 -R phpmyadmin
-chmod 777 -R phpmyadmin/*
-ln -s /etc/phpmyadmin/config.inc.php /usr/share/phpmyadmin/config.inc.php
-chmod 644 /etc/phpmyadmin/config.inc.php
-systemctl stop mariadb
-wget "https://raw.githubusercontent.com/ap-rose/fivem-install/main/Configs/my.cnf" -O /etc/mysql/my.cnf
-chmod 644 /etc/mysql/my.cnf
-systemctl start mariadb
-apt-get -y install sshpass
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade
+echo -e "\e[93m[fivem-install]\e[0m Add user fxserver"
 getent passwd fxserver
 adduser --system --shell /bin/false --group --disabled-login fxserver 
 mkdir -p /home/fxserver
-wget -O "/tmp/fx.tar.xz" "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/5402-810a639673d8da03fe4b1dc2b922c9c0265a542e/fx.tar.xz"
-tar -zxvf "/tmp/fx.tar.xz" -C "/home/fxserver/"
+echo -e "\e[93m[fivem-install]\e[0m Download FiveM content"
+wget -O "/home/fxserver/server/fx.tar.xz" "https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/5402-810a639673d8da03fe4b1dc2b922c9c0265a542e/fx.tar.xz"
+echo -e "\e[93m[fivem-install]\e[0m Unpack FiveM content"
+DEBIAN_FRONTEND=noninteractive tar xf "/home/fxserver/server/fx.tar.xz" -C "/home/fxserver/server/"
 rm -f /tmp/fx.tar.xz
-mysql -u root -p$ROOT_PASSWORD -e "DROP DATABASE IF EXISTS fxserver_data; CREATE DATABASE IF NOT EXISTS fxserver_data;"
+echo -e "\e[93m[fivem-install]\e[0m Update MySQL root password"
+mysql -u root -e "UPDATE mysql.user SET Password = PASSWORD('$MYSQL_ROOT_PASSWORD') WHERE User = 'root'"
+mysql -u root -e "DROP USER ''@'localhost'"
+mysql -u root -e "DROP USER ''@'$(hostname)'"
+mysql -u root -e "DROP DATABASE test"
+mysql -u root -e "FLUSH PRIVILEGES"
+mysql -u root -p$MYSQL_ROOT_PASSWORD -e "DROP DATABASE IF EXISTS fxserver_data; CREATE DATABASE IF NOT EXISTS fxserver_data;"
 sqlpass=$(tr -cd '[:alnum:]' < /dev/urandom | fold -w20 | head -n1)
-mysql -u root -p$ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON fxserver_data.* TO 'fxserver_user'@'%' IDENTIFIED BY '$sqlpass' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+mysql -u root -p$MYSQL_ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON fxserver_data.* TO 'fxserver_user'@'%' IDENTIFIED BY '$sqlpass' WITH GRANT OPTION; FLUSH PRIVILEGES;"
 ip=$(wget -qO- https://ipstring.000webhostapp.com/)
-
-mkdir -p ~/home/fxserver/server
-mkdir -p ~/home/fxserver/server-data
-git clone https://github.com/citizenfx/cfx-server-data.git ~/home/fxserver/server-data
-wget "https://raw.githubusercontent.com/ap-rose/fivem-install/main/Configs/my.cnf" -O ~/home/fxserver/server-data/server.cfg
-
-read license steamapi 
-
+if ! grep -q "fxserver ALL = (root) NOPASSWD: /sbin/iptables" /etc/sudoers; then
+    echo "fxserver ALL = (root) NOPASSWD: /sbin/iptables" >> /etc/sudoers;
+fi
+if ! grep -q "fxserver ALL = (root) NOPASSWD: /bin/chmod" /etc/sudoers; then
+    echo "fxserver ALL = (root) NOPASSWD: /bin/chmod" >> /etc/sudoers;
+fi
+mkdir -p /home/fxserver/server
+mkdir -p /home/fxserver/server-data
+git clone https://github.com/citizenfx/cfx-server-data.git /home/fxserver/server-data
+wget "https://raw.githubusercontent.com/ap-rose/fivem-install/main/config/server.cfg" -O /home/fxserver/server-data/server.cfg
+#wget "https://raw.githubusercontent.com/ap-rose/fivem-install/main/fivem-cron.sh" -O /home/fxserver/server-data/server.cfg
+echo -e "\e[93m[fivem-install]\e[0m Configure FiveM server.cfg"
 read -r -p "Enter your FiveM license: " fxlicense
-
 read -r -p "Enter your Steam API: " fxsteamapi
-
 read -r -p "Enter your SteamID (steamID64 - Hex): " fxsteamid
-
-read -r -p "Enter your FiveM hostname: " fxhostname
-
 read -r -p "Enter your FiveM server name: " fxname
-
 read -r -p "Enter your FiveM server description: " fxdesc
-
-cat > /etc/apt/sources.list <<EOF
+cat >> /home/fxserver/server-data/server.cfg <<EOF
 sv_licenseKey $fxlicense
 set steam_webApiKey "$fxsteamapi"
-sv_hostname "FXServer, but unconfigured"
+sv_hostname "$fxname"
 sets sv_projectName "$fxname"
 sets sv_projectDesc "$fxdesc"
 add_principal identifier.steam:$fxsteamid group.admin # add the admin to the group
 EOF
+chown fxserver:fxserver -R /home/fxserver
+chmod -R 0777 /home/fxserver
 
-
-
+echo '
+ ____  __  _  _  ____  _  _      __  __ _  ____  ____  __   __    __   
+(  __)(  )/ )( \(  __)( \/ ) ___(  )(  ( \/ ___)(_  _)/ _\ (  )  (  )  
+ ) _)  )( \ \/ / ) _) / \/ \(___))( /    /\___ \  )( /    \/ (_/\/ (_/\
+(__)  (__) \__/ (____)\_)(_/    (__)\_)__)(____/ (__)\_/\_/\____/\____/
+'
+echo "Server IP: 			$ip:30120"
+echo "Server Name: 			$fxname" 
+echo "Server Description: 		$fxdesc" 
+echo "FiveM License: 			$fxlicense" 
+echo "Steam API: 			$fxsteamapi" 
+echo "Admin SteamID: 			$fxsteamid" 
+echo "SQL Password (root): 		$MYSQL_ROOT_PASSWORD"
+echo "SQL Password (fxserver): 	$sqlpass"
