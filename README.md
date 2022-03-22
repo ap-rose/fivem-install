@@ -7,3 +7,4 @@ wget https://raw.githubusercontent.com/ap-rose/fivem-install/main/fivem-install.
 chmod +x fivem-install.sh
 ./fivem-install.sh
 ```
+![](https://raw.githubusercontent.com/ap-rose/fivem-install/main/screenshot/fivem-install-display.gif)
