@@ -126,12 +126,14 @@ sudo ufw allow 40120/tcp
 
 
 screen -S fxserver -dm /home/fxserver/server/run.sh
-echo "\e[92m"
+echo -e "\e[92m"
 echo "
+
  ____  __  _  _  ____  _  _      __  __ _  ____  ____  __   __    __   
 (  __)(  )/ )( \(  __)( \/ ) ___(  )(  ( \/ ___)(_  _)/ _\ (  )  (  )  
  ) _)  )( \ \/ / ) _) / \/ \(___))( /    /\___ \  )( /    \/ (_/\/ (_/\
 (__)  (__) \__/ (____)\_)(_/    (__)\_)__)(____/ (__)\_/\_/\____/\____/
+
 https://github.com/ap-rose/fivem-install
 
 FiveM server has been installed but not configured.
