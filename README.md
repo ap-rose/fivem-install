@@ -4,6 +4,6 @@ fivem-install is a bash script to install FiveM server and MySQL server for Ubun
 Fresh installation of Ubuntu recommended.
 ```sh
 wget https://raw.githubusercontent.com/ap-rose/fivem-install/main/fivem-install.sh
-chmod +x /fivem-install.sh
+chmod +x fivem-install.sh
 ./fivem-install.sh
 ```
